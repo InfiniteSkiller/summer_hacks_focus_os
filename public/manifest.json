@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Focus OS Tab Manager",
+  "version": "1.0.0",
+  "description": "Organize tabs into Focus and Distraction groups for a productive browsing experience",
+  "permissions": ["tabs", "tabGroups", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:*/*", "http://127.0.0.1:*/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected-bridge.js"],
+      "matches": ["http://localhost:*/*", "http://127.0.0.1:*/*"]
+    }
+  ],
+  "action": {
+    "default_title": "Focus OS Tab Manager"
+  }
+}

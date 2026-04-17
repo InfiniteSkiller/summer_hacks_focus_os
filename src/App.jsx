@@ -5,12 +5,25 @@ import ExitJournal from "./screens/ExitJournal";
 import ReEntry from "./screens/ReEntry";
 import Summary from "./screens/Summary";
 import { clearSession, getSession, saveSession } from "./utils/storage";
+import extensionBridge from "./api/extension-bridge";
 
 export default function App() {
   const [appState, setAppState] = useState("lockin");
   const [session, setSession] = useState(getSession());
+  const [extensionAvailable, setExtensionAvailable] = useState(false);
 
   useEffect(() => {
+    const initExtension = async () => {
+      const available = await extensionBridge.init();
+      setExtensionAvailable(available);
+      if (available) {
+        console.log('[App] Extension initialized');
+      } else {
+        console.log('[App] Extension not available');
+      }
+    };
+    initExtension();
+
     const stored = getSession();
     if (stored?.task && !stored.completed) {
       setSession(stored);
@@ -33,17 +46,30 @@ export default function App() {
     saveSession(nextSession);
     setSession(nextSession);
     setAppState("focus");
+
+    // Start focus session in extension
+    if (extensionAvailable) {
+      extensionBridge
+        .startFocusSession({
+          whitelist: [
+            'github.com', 'docs.google.com', 'stackoverflow.com', 'npmjs.com',
+            'mail.google.com', 'slack.com', 'figma.com', 'linear.app',
+            'notion.so', 'developer.chrome.com', 'mdn.mozilla.org',
+            'caniuse.com', 'google.com', 'wikipedia.org', 'openai.com'
+          ]
+        })
+        .then((result) => {
+          if (result.success) {
+            console.log('[App] Focus session started:', result.data);
+          }
+        });
+    }
   }
 
   function handleReturnToReentry(distraction) {
     const current = getSession();
-    if (!current) {
-      return;
-    }
-    const nextSession = {
-      ...current,
-      distractionType: distraction,
-    };
+    if (!current) return;
+    const nextSession = { ...current, distractionType: distraction };
     saveSession(nextSession);
     setSession(nextSession);
     setAppState("reentry");
@@ -51,14 +77,8 @@ export default function App() {
 
   function handleResumeFocus() {
     const current = getSession();
-    if (!current) {
-      return;
-    }
-    const nextSession = {
-      ...current,
-      startTime: new Date().toISOString(),
-      exitTime: null,
-    };
+    if (!current) return;
+    const nextSession = { ...current, startTime: new Date().toISOString(), exitTime: null };
     saveSession(nextSession);
     setSession(nextSession);
     setAppState("focus");
@@ -68,6 +88,17 @@ export default function App() {
     clearSession();
     setSession(null);
     setAppState("lockin");
+
+    // End focus session in extension
+    if (extensionAvailable) {
+      extensionBridge
+        .endFocusSession({ cleanup: true })
+        .then((result) => {
+          if (result.success) {
+            console.log('[App] Focus session ended');
+          }
+        });
+    }
   }
 
   function renderScreen() {
