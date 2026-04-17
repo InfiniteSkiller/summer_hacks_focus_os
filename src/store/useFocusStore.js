@@ -97,6 +97,21 @@ export const useFocusStore = create(
         get().transition(FocusState.FOCUSED);
       },
 
+      stageTaskFromHistory: (historyItem) => {
+        if (!historyItem?.taskName?.trim()) {
+          return;
+        }
+        set((state) => ({
+          session: {
+            ...state.session,
+            taskName: historyItem.taskName,
+            taskNotes: historyItem.taskNotes || "",
+            plannedDuration: Number(historyItem.plannedDuration) || 25,
+          },
+        }));
+        get().transition(FocusState.LOCK_IN);
+      },
+
       addDistraction: (reason) => {
         set((state) => ({
           session: {

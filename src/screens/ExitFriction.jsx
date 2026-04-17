@@ -23,14 +23,14 @@ export default function ExitFriction() {
   return (
     <section className="phase-reveal focus-shell rounded-3xl border border-black/10 p-8 shadow-lg">
       <h2 className="text-2xl font-semibold">Exit Friction</h2>
-      <p className="mt-2 text-sm text-[var(--ink-soft)]">
+      <p className="mt-2 text-sm text-(--ink-soft)">
         Hold for 1.4s to confirm you want to break focus.
       </p>
       <div className="mt-6 flex flex-col items-center gap-4">
         <HoldRing progress={progress} />
         <button
           type="button"
-          className="rounded-full bg-[var(--accent-2)] px-6 py-3 text-white"
+          className="rounded-full bg-(--accent-2) px-6 py-3 text-white"
           onMouseDown={start}
           onMouseUp={stop}
           onMouseLeave={stop}

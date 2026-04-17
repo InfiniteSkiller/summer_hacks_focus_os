@@ -1,42 +1,31 @@
-"use client";
+import { getReentrySuggestion } from "../utils/intelligence";
 
-import { useEffect } from "react";
-import AIStepCard from "@/src/components/AIStepCard";
-import { useAINextStep } from "@/src/hooks/useAINextStep";
-import { FocusState } from "@/src/store/cycleEngine";
-import { useFocusStore } from "@/src/store/useFocusStore";
-
-export default function Reentry() {
-  const session = useFocusStore((state) => state.session);
-  const transition = useFocusStore((state) => state.transition);
-  const setReentryPrompt = useFocusStore((state) => state.setReentryPrompt);
-  const { loading, error, suggestion, fetchNextStep } = useAINextStep(session.taskName);
-
-  useEffect(() => {
-    fetchNextStep().then((step) => setReentryPrompt(step));
-  }, [fetchNextStep, setReentryPrompt]);
+export default function ReEntry({ session, onBackToFocus }) {
+  const task = session?.task || "";
+  const distractionType = session?.distractionType || null;
+  const suggestion = getReentrySuggestion(task, distractionType);
 
   return (
-    <section className="phase-reveal focus-shell rounded-3xl border border-black/10 p-8 shadow-lg">
-      <h2 className="text-2xl font-semibold">Re-entry</h2>
-      <p className="mt-2 text-sm text-[var(--ink-soft)]">Return with one clear next action.</p>
-      <div className="mt-6">
-        <AIStepCard suggestion={suggestion} loading={loading} error={error} />
-      </div>
-      <div className="mt-6 flex gap-3">
+    <section className="screen-shell screen-enter flex h-screen w-screen items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        <p className="text-xs uppercase tracking-[0.18em] text-focus-muted">welcome back</p>
+
+        <p className="mt-4 text-sm text-focus-muted">You were working on</p>
+        <h2 className="mt-1 text-2xl font-medium text-focus-text">{session.task}</h2>
+
+        <div className="my-6 h-px w-full bg-[#252538]" />
+
+        <p className="text-xs uppercase tracking-[0.16em] text-focus-muted">Start with</p>
+        <div className="mt-3 rounded-xl border-l-[3px] border-focus-accent bg-[#13131a] p-4">
+          <p className="text-sm text-focus-text">{suggestion}</p>
+        </div>
+
         <button
           type="button"
-          className="rounded-full border border-black/10 px-5 py-2"
-          onClick={() => transition(FocusState.SUMMARY)}
+          onClick={onBackToFocus}
+          className="mt-8 h-13 w-full rounded-xl bg-focus-accent text-sm font-medium text-white"
         >
-          End Session
-        </button>
-        <button
-          type="button"
-          className="rounded-full bg-[var(--accent)] px-5 py-2 text-white"
-          onClick={() => transition(FocusState.FOCUSED)}
-        >
-          Resume Focus
+          I&apos;m back - lock in -&gt;
         </button>
       </div>
     </section>

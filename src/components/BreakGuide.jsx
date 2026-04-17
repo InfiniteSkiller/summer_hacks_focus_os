@@ -11,7 +11,7 @@ export default function BreakGuide({ remainingMs }) {
   return (
     <section className="stat-tile p-5">
       <h3 className="text-lg font-semibold">Recovery Protocol</h3>
-      <p className="mt-2 text-sm text-[var(--ink-soft)]">
+      <p className="mt-2 text-sm text-(--ink-soft)">
         Walk, hydrate, breathe. Return with intent.
       </p>
       <p className="timer-mono mt-4 text-3xl">{formatMs(remainingMs)}</p>

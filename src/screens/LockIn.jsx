@@ -1,61 +1,89 @@
-"use client";
-
 import { useState } from "react";
-import { FocusState } from "@/src/store/cycleEngine";
-import { useFocusStore } from "@/src/store/useFocusStore";
 
-export default function LockIn() {
-  const transition = useFocusStore((state) => state.transition);
-  const lockInTask = useFocusStore((state) => state.lockInTask);
-  const existing = useFocusStore((state) => state.session);
-  const [taskName, setTaskName] = useState(existing.taskName || "");
-  const [taskNotes, setTaskNotes] = useState(existing.taskNotes || "");
-  const [plannedDuration, setPlannedDuration] = useState(existing.plannedDuration || 25);
+export default function LockIn({ onLockIn }) {
+  const [task, setTask] = useState("");
+  const [durationType, setDurationType] = useState("25");
+  const [customDuration, setCustomDuration] = useState(30);
+
+  const duration = durationType === "custom" ? Number(customDuration || 1) : Number(durationType);
+  const isDisabled = !task.trim();
+
+  function handleSubmit() {
+    if (isDisabled) {
+      return;
+    }
+    onLockIn({ task: task.trim(), duration });
+  }
 
   return (
-    <section className="phase-reveal focus-shell rounded-3xl border border-black/10 p-8 shadow-lg">
-      <h2 className="text-2xl font-semibold">Lock-In</h2>
-      <p className="mt-2 text-sm text-[var(--ink-soft)]">
-        Commit one task. Everything else can wait.
-      </p>
-      <div className="mt-6 space-y-4">
+    <section className="screen-shell screen-enter relative flex h-screen w-screen items-center justify-center px-6">
+      <p className="absolute left-6 top-6 text-[14px] font-medium text-focus-accent">Focus OS</p>
+
+      <div className="w-full max-w-md">
+        <h1 className="text-[28px] font-medium text-focus-text">What are you working on?</h1>
+        <p className="mt-2 text-sm text-focus-muted">Lock in. Go deep. Come back.</p>
+
         <input
-          value={taskName}
-          onChange={(event) => setTaskName(event.target.value)}
-          placeholder="Task name"
-          className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3"
+          value={task}
+          onChange={(event) => setTask(event.target.value)}
+          placeholder="e.g. Build the login screen..."
+          className="mt-6 h-12 w-full rounded-xl border border-[#2a2940] bg-[#13131a] px-4 text-sm text-focus-text outline-none transition focus:border-focus-accent"
         />
-        <textarea
-          value={taskNotes}
-          onChange={(event) => setTaskNotes(event.target.value)}
-          placeholder="Task notes"
-          className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3"
-          rows={3}
-        />
-        <input
-          type="number"
-          min={10}
-          max={120}
-          value={plannedDuration}
-          onChange={(event) => setPlannedDuration(Number(event.target.value))}
-          className="w-full rounded-xl border border-black/10 bg-white/70 px-4 py-3"
-        />
-      </div>
-      <div className="mt-6 flex gap-3">
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setDurationType("25")}
+            className={`rounded-full px-4 py-2 text-sm ${
+              durationType === "25"
+                ? "bg-focus-accent text-white"
+                : "border border-[#2b2a3d] bg-[#13131a] text-focus-muted"
+            }`}
+          >
+            25 min
+          </button>
+          <button
+            type="button"
+            onClick={() => setDurationType("50")}
+            className={`rounded-full px-4 py-2 text-sm ${
+              durationType === "50"
+                ? "bg-focus-accent text-white"
+                : "border border-[#2b2a3d] bg-[#13131a] text-focus-muted"
+            }`}
+          >
+            50 min
+          </button>
+          <button
+            type="button"
+            onClick={() => setDurationType("custom")}
+            className={`rounded-full px-4 py-2 text-sm ${
+              durationType === "custom"
+                ? "bg-focus-accent text-white"
+                : "border border-[#2b2a3d] bg-[#13131a] text-focus-muted"
+            }`}
+          >
+            Custom
+          </button>
+        </div>
+
+        {durationType === "custom" ? (
+          <input
+            type="number"
+            min={1}
+            value={customDuration}
+            onChange={(event) => setCustomDuration(Number(event.target.value || 1))}
+            className="mt-3 h-11 w-full rounded-xl border border-[#2a2940] bg-[#13131a] px-4 text-sm text-focus-text outline-none focus:border-focus-accent"
+            placeholder="Enter custom minutes"
+          />
+        ) : null}
+
         <button
           type="button"
-          className="rounded-full border border-black/10 px-5 py-2"
-          onClick={() => transition(FocusState.IDLE)}
+          onClick={handleSubmit}
+          disabled={isDisabled}
+          className="mt-6 h-12 w-full rounded-xl bg-focus-accent text-sm font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="rounded-full bg-[var(--accent)] px-5 py-2 text-white"
-          onClick={() => lockInTask({ taskName, taskNotes, plannedDuration })}
-          disabled={!taskName.trim()}
-        >
-          Commit and Focus
+          Lock In -&gt;
         </button>
       </div>
     </section>
