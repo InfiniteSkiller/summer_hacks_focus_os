@@ -1,128 +1,153 @@
 /**
  * Extension Bridge
- * Handles communication between React app and Chrome extension
+ * Posts focus control messages to the page so content scripts can relay them.
  */
+
+function canPostMessage() {
+  return typeof window !== 'undefined' && typeof window.postMessage === 'function';
+}
+
+function readArrayFromLocalStorage(key) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((item) => typeof item === 'string' && item.trim().length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function getFocusPayload(fallbackSites = []) {
+  const storedFocusSites = readArrayFromLocalStorage('focusSites');
+  const storedBlockedSites = readArrayFromLocalStorage('blockedSites');
+
+  return {
+    focusSites: storedFocusSites.length > 0 ? storedFocusSites : fallbackSites,
+    blockedSites: storedBlockedSites
+  };
+}
+
+export function startFocusMode(payload = {}) {
+  if (!canPostMessage()) {
+    return false;
+  }
+
+  window.postMessage(
+    {
+      type: 'FOCUS_START',
+      payload
+    },
+    '*'
+  );
+  return true;
+}
+
+export function stopFocusMode() {
+  if (!canPostMessage()) {
+    return false;
+  }
+
+  window.postMessage({ type: 'FOCUS_STOP' }, '*');
+  return true;
+}
+
+export function startBreakMode() {
+  if (!canPostMessage()) {
+    return false;
+  }
+
+  window.postMessage({ type: 'BREAK_START' }, '*');
+  return true;
+}
+
+export function endBreakMode() {
+  if (!canPostMessage()) {
+    return false;
+  }
+
+  window.postMessage({ type: 'BREAK_END' }, '*');
+  return true;
+}
 
 class ExtensionBridge {
   constructor() {
     this.available = false;
     this.initialized = false;
-    this.bridge = null;
   }
 
   async init() {
-    if (this.initialized) return this.available;
-
-    return new Promise((resolve) => {
-      const checkBridge = () => {
-        if (window.__focusOSBridge) {
-          console.log('[ExtensionBridge] Bridge found');
-          this.bridge = window.__focusOSBridge;
-
-          this.bridge.sendMessage({ type: 'PING' }).then((response) => {
-            if (response?.pong) {
-              console.log('[ExtensionBridge] Extension ready');
-              this.available = true;
-            } else {
-              this.available = false;
-            }
-            this.initialized = true;
-            resolve(this.available);
-          }).catch(() => {
-            this.available = false;
-            this.initialized = true;
-            resolve(false);
-          });
-        } else {
-          setTimeout(checkBridge, 100);
-        }
-      };
-
-      checkBridge();
-
-      setTimeout(() => {
-        if (!this.initialized) {
-          this.available = false;
-          this.initialized = true;
-          resolve(false);
-        }
-      }, 5000);
-    });
+    this.available = canPostMessage();
+    this.initialized = true;
+    return this.available;
   }
 
   isAvailable() {
     return this.available;
   }
 
-  sendMessage(message) {
-    if (!this.available || !this.bridge) {
-      return Promise.resolve({
-        success: false,
-        error: 'Extension not available',
-        reason: 'extension_not_installed'
-      });
-    }
-
-    return this.bridge
-      .sendMessage({ type: message.type, ...message })
-      .catch((error) => {
-        console.error('[ExtensionBridge] Error:', error);
-        return {
-          success: false,
-          error: error.message,
-          reason: 'message_error'
-        };
-      });
-  }
-
   async startFocusSession(options = {}) {
-    console.log('[ExtensionBridge] Starting session', options);
-    return this.sendMessage({
-      type: 'START_FOCUS_SESSION',
-      options
-    });
+    const fallbackSites = Array.isArray(options?.whitelist) ? options.whitelist : [];
+    const payload = getFocusPayload(fallbackSites);
+    const sent = startFocusMode(payload);
+    return sent
+      ? { success: true, data: { sent: true } }
+      : { success: false, error: 'Bridge unavailable', reason: 'bridge_unavailable' };
   }
 
-  async endFocusSession(options = {}) {
-    console.log('[ExtensionBridge] Ending session', options);
-    return this.sendMessage({
-      type: 'END_FOCUS_SESSION',
-      options
-    });
+  async endFocusSession() {
+    const sent = stopFocusMode();
+    return sent
+      ? { success: true, data: { sent: true } }
+      : { success: false, error: 'Bridge unavailable', reason: 'bridge_unavailable' };
+  }
+
+  async startBreakSession() {
+    const sent = startBreakMode();
+    return sent
+      ? { success: true, data: { sent: true } }
+      : { success: false, error: 'Bridge unavailable', reason: 'bridge_unavailable' };
+  }
+
+  async endBreakSession() {
+    const sent = endBreakMode();
+    return sent
+      ? { success: true, data: { sent: true } }
+      : { success: false, error: 'Bridge unavailable', reason: 'bridge_unavailable' };
   }
 
   async getSessionStatus() {
-    return this.sendMessage({
-      type: 'GET_SESSION_STATUS'
-    });
+    return { success: false, error: 'Not implemented in postMessage bridge' };
   }
 
   async getWhitelist() {
-    return this.sendMessage({
-      type: 'GET_WHITELIST'
-    });
+    return { success: false, error: 'Not implemented in postMessage bridge' };
   }
 
-  async updateWhitelist(whitelist) {
-    return this.sendMessage({
-      type: 'UPDATE_WHITELIST',
-      whitelist
-    });
+  async updateWhitelist() {
+    return { success: false, error: 'Not implemented in postMessage bridge' };
   }
 
-  async addToWhitelist(domain) {
-    return this.sendMessage({
-      type: 'ADD_TO_WHITELIST',
-      whitelist: domain
-    });
+  async addToWhitelist() {
+    return { success: false, error: 'Not implemented in postMessage bridge' };
   }
 
-  async removeFromWhitelist(domain) {
-    return this.sendMessage({
-      type: 'REMOVE_FROM_WHITELIST',
-      whitelist: domain
-    });
+  async removeFromWhitelist() {
+    return { success: false, error: 'Not implemented in postMessage bridge' };
   }
 }
 
-export default new ExtensionBridge();
+const extensionBridge = new ExtensionBridge();
+
+export default extensionBridge;
